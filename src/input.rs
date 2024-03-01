@@ -16,8 +16,17 @@ pub struct Trade {
     time: DateTime<Utc>,
 }
 
-pub async fn gather_all_data() -> Result<(), Box<dyn std::error::Error>> {
-    let resp = mexc::gather_data().await;
+pub enum InputError {
+    MexcError(mexc::MexcError),
+}
+impl From<mexc::MexcError> for InputError {
+    fn from(e: mexc::MexcError) -> Self {
+        InputError::MexcError(e)
+    }
+}
+
+pub async fn gather_all_data() -> Result<(), InputError> {
+    let resp = mexc::gather_data().await?;
 
     println!("{:?}", resp);
 

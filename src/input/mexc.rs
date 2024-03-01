@@ -1,4 +1,4 @@
-use std::{error::Error, sync::Arc, time::SystemTime};
+use std::sync::Arc;
 
 use chrono::DateTime;
 use futures::future::join_all;
@@ -47,7 +47,7 @@ async fn request_signed(url: &str, parameters: &str) -> Result<Response, MexcErr
         .await?
         .server_time;
 
-    let parameters = if parameters == "" {
+    let parameters = if parameters.is_empty() {
         format!("timestamp={now}")
     } else {
         format!("timestamp={now}&{parameters}")
@@ -140,17 +140,13 @@ async fn get_trades_for_symbol(symbol: String) -> Result<Vec<Trade>, MexcError> 
         })
         .collect();
 
-    println!("Collected trades for symbol {symbol}");
-
     Ok(trades)
 }
 
 pub async fn gather_data() -> Result<Vec<Trade>, MexcError> {
     let symbols = get_symbols().await?;
 
-    let trades = symbols
-        .into_iter()
-        .map(|symbol| get_trades_for_symbol(symbol));
+    let trades = symbols.into_iter().map(get_trades_for_symbol);
     let trades = join_all(trades).await;
     let trades: Result<Vec<_>, _> = trades.into_iter().collect();
     let trades: Vec<_> = trades?.into_iter().flatten().collect();
