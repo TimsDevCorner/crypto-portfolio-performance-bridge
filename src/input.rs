@@ -1,34 +1,30 @@
-use chrono::{DateTime, Utc};
-
-pub mod mexc;
-
-#[derive(Debug, Clone)]
-pub struct Trade {
-    source: String,
-    symbol: String,
-    id: String,
-    order_id: String,
-    price: f64,
-    qty: f64,
-    total: f64,
-    commission: f64,
-    commission_asset: String,
-    time: DateTime<Utc>,
-}
-
-pub enum InputError {
-    MexcError(mexc::MexcError),
-}
-impl From<mexc::MexcError> for InputError {
-    fn from(e: mexc::MexcError) -> Self {
-        InputError::MexcError(e)
-    }
-}
-
-pub async fn gather_all_data() -> Result<(), InputError> {
-    let resp = mexc::gather_data().await?;
-
-    println!("{:?}", resp);
-
-    Ok(())
-}
+// use std::sync::Arc;
+//
+// use chrono::{DateTime, Utc};
+// use hmac::Hmac;
+// use sha2::Sha256;
+//
+// pub mod coinbase;
+// pub mod mexc;
+//
+// type HmacSha256 = Hmac<Sha256>;
+//
+// #[derive(Debug)]
+// pub enum InputError {
+//     RequestError(Arc<reqwest::Error>),
+//     StatusError(u16),
+// }
+// impl From<reqwest::Error> for InputError {
+//     fn from(error: reqwest::Error) -> Self {
+//         InputError::RequestError(Arc::new(error))
+//     }
+// }
+//
+// pub async fn gather_all_data() -> Result<(), InputError> {
+//     // let mexc_data = mexc::gather_data().await?;
+//     let coinbase_data = coinbase::gather_data().await?;
+//
+//     println!("{:?}", coinbase_data);
+//
+//     Ok(())
+// }
