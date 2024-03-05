@@ -4,11 +4,11 @@ use clap::{Parser, Subcommand, ValueEnum};
 #[command(version, about, long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
-    command: Command,
+    pub command: Command,
 }
 
 #[derive(Subcommand)]
-enum Command {
+pub enum Command {
     /// fetch data from exchanges, defaulting to all
     Fetch {
         #[arg(short, long)]
@@ -30,7 +30,7 @@ enum Command {
 }
 
 #[derive(Subcommand)]
-enum FetchOptions {
+pub enum FetchOptions {
     All,
     /// the list of exchanges to fetch data from
     Exchange {
@@ -39,7 +39,7 @@ enum FetchOptions {
 }
 
 #[derive(ValueEnum, Clone)]
-enum Exchange {
+pub enum Exchange {
     Coinbase,
     MEXC,
 }

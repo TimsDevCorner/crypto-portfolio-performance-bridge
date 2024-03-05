@@ -16,3 +16,4 @@ serde = { version = "1.0.197", features = ["std", "serde_derive"] }
 chrono = "0.4.34"
 futures = "0.3.30"
 clap = { version = "4.5.1", features = ["derive"] }
+sqlx = { version = "0.7", features = [ "runtime-tokio", "sqlite", "macros", "migrate", "chrono"] }
