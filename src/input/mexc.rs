@@ -161,7 +161,7 @@ async fn retrieve_and_save_trades_for_symbol(
     Ok(())
 }
 
-async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError> {
+pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError> {
     let trades = query!("SELECT * FROM mexc_my_trades")
         .fetch_all(db)
         .await?
@@ -209,7 +209,7 @@ async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError> {
                 source,
                 destination,
                 comission,
-                timestamp: Utc.timestamp_opt(row.time, 0).unwrap(),
+                timestamp: Utc.timestamp_millis_opt(row.time).unwrap(),
             }
         })
         .collect::<Vec<_>>();
@@ -217,7 +217,7 @@ async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError> {
     Ok(trades)
 }
 
-pub async fn gather_data(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError> {
+pub async fn gather_data(db: &Pool<Sqlite>) -> Result<(), InputError> {
     let symbols = get_symbols().await?;
 
     let retrieved_trades = symbols
@@ -230,5 +230,5 @@ pub async fn gather_data(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError> {
         .into_iter()
         .collect::<Result<Vec<_>, _>>()?;
 
-    Ok(get_all_trades(db).await?)
+    Ok(())
 }

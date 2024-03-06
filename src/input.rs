@@ -4,7 +4,7 @@ use hmac::Hmac;
 use sha2::Sha256;
 use sqlx::{Pool, Sqlite};
 
-use crate::command_line_interface::Exchange;
+use crate::{command_line_interface::Exchange, data::Trade};
 
 pub mod coinbase;
 pub mod mexc;
@@ -28,19 +28,21 @@ impl From<sqlx::Error> for InputError {
     }
 }
 
+async fn save_trades(db: Pool<Sqlite>, trades: Vec<Trade>) -> Result<(), InputError> {
+    todo!()
+}
+
 pub async fn gather_data(db: &Pool<Sqlite>, exchange: Option<Exchange>) -> Result<(), InputError> {
-    let data = if let Some(exchange) = exchange {
+    if let Some(exchange) = exchange {
         match exchange {
             Exchange::MEXC => mexc::gather_data(db).await?,
-            Exchange::Coinbase => todo!(),
+            Exchange::Coinbase => coinbase::gather_data(db).await?,
         }
     } else {
-        // coinbase::gather_data(db).await?;
-        // mexc::gather_data(db).await?;
+        mexc::gather_data(db).await?;
+        coinbase::gather_data(db).await?;
         todo!()
     };
-
-    println!("{:?}", data);
 
     Ok(())
 }
