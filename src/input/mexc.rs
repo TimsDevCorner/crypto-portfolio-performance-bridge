@@ -187,12 +187,16 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError>
                 },
             };
 
-            let comission = Amount {
-                amount: row.commission.parse().unwrap(),
-                asset: Asset {
-                    name: row.commission_asset,
-                    contract_address: None,
-                },
+            let comission = if row.commission == "0" {
+                None
+            } else {
+                Some(Amount {
+                    amount: row.commission.parse().unwrap(),
+                    asset: Asset {
+                        name: row.commission_asset,
+                        contract_address: None,
+                    },
+                })
             };
 
             let (source, destination) = if row.is_buyer != 1 {

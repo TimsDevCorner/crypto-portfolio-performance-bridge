@@ -221,6 +221,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-targets 0.52.4",
 ]
@@ -354,6 +355,7 @@ dependencies = [
  "hmac",
  "reqwest",
  "serde",
+ "serde_json",
  "sha2",
  "sqlx",
  "tokio",

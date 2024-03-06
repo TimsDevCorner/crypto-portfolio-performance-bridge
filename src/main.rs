@@ -31,6 +31,7 @@ async fn main() -> Result<(), InputError> {
 
     let result = match cli.command {
         Command::Fetch { exchange } => input::gather_data(&db, exchange).await,
+        Command::Display {} => input::list_all_trades(&db).await,
         _ => {
             todo!()
         }

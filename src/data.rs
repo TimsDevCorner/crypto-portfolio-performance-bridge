@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 
 pub struct Network(
     /// The name of the network
@@ -25,7 +26,7 @@ pub struct WalletBalance {
 }
 
 /// An Asset is any crypto currency or fiat
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Asset {
     /// The unique ticker of the asset
     pub name: String,
@@ -34,7 +35,7 @@ pub struct Asset {
 }
 
 /// An Amount is the amount and asset used in other structs
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Amount {
     /// The amount of the asset stored, traded, etc
     pub amount: f64,
@@ -44,7 +45,7 @@ pub struct Amount {
 
 /// An Application is any place an crypto currency or fiat can be traded or bridged
 /// e.g. Uniswap, PancakeSwap, etc
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Application(pub String);
 
 /// A Bridge is a transaction that moves an asset from one network to another
@@ -68,7 +69,7 @@ pub struct Bridge {
 }
 
 /// A Trade is a transaction where one asset is exchanged for another
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Trade {
     /// The application that made the trade
     pub application: Application,
@@ -80,7 +81,7 @@ pub struct Trade {
     /// The asset being bought
     pub destination: Amount,
     /// The comission paid for the trade
-    pub comission: Amount,
+    pub comission: Option<Amount>,
 
     /// The timestamp the trasaction took place
     pub timestamp: DateTime<Utc>,
