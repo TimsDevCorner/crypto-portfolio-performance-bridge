@@ -210,7 +210,7 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError>
             Trade {
                 application: Application("MEXC".to_string()),
                 tx_id: row.id,
-                source,
+                source: Some(source),
                 destination,
                 comission,
                 timestamp: Utc.timestamp_millis_opt(row.time).unwrap(),

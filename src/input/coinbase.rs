@@ -232,40 +232,147 @@ pub async fn gather_data(db: &Pool<Sqlite>) -> Result<(), InputError> {
 }
 
 pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError> {
-    let trades = query!("SELECT * FROM coinbase_transactions WHERE type = 'buy'")
-        .fetch_all(db)
-        .await?
-        .into_iter()
-        .filter(|row| match row.r#type.as_ref() {
-            "buy" => row.amount_currency != "EUR",
-            _ => todo!("{}", row.r#type),
-        })
-        .map(|row| match row.r#type.as_ref() {
-            "buy" => Trade {
+    let mut transactions_except_trades =
+        query!("SELECT * FROM coinbase_transactions WHERE type != 'trade'")
+            .fetch_all(db)
+            .await?
+            .into_iter()
+            .filter(|row| match row.r#type.as_ref() {
+                "buy" => row.amount_currency != "EUR",
+                "sell" => row.amount_currency != "EUR",
+
+                "earn_payout" => true,
+
+                "send" => false,
+                "fiat_deposit" => false,
+
+                _ => unimplemented!("Coinbase type '{}' is not implemented", row.r#type),
+            })
+            .map(|row| match row.r#type.as_ref() {
+                "buy" => Trade {
+                    application: Application("Coinbase".to_string()),
+                    tx_id: row.id,
+                    source: Some(Amount {
+                        amount: row.native_amount_amount.parse().unwrap(),
+                        asset: Asset {
+                            name: row.native_amount_currency,
+                            contract_address: None,
+                        },
+                    }),
+                    destination: Amount {
+                        amount: row.amount_amount.parse().unwrap(),
+                        asset: Asset {
+                            name: row.amount_currency,
+                            contract_address: None,
+                        },
+                    },
+                    comission: None,
+                    timestamp: row.created_at.parse().unwrap(),
+                },
+                "sell" => Trade {
+                    application: Application("Coinbase".to_string()),
+                    tx_id: row.id,
+                    source: Some(Amount {
+                        amount: row.amount_amount.parse::<f64>().unwrap() * -1.0,
+                        asset: Asset {
+                            name: row.amount_currency,
+                            contract_address: None,
+                        },
+                    }),
+                    destination: Amount {
+                        amount: row.native_amount_amount.parse::<f64>().unwrap() * -1.0,
+                        asset: Asset {
+                            name: row.native_amount_currency,
+                            contract_address: None,
+                        },
+                    },
+                    comission: None,
+                    timestamp: row.created_at.parse().unwrap(),
+                },
+                "earn_payout" => Trade {
+                    application: Application("Coinbase".to_string()),
+                    tx_id: row.id,
+                    source: None,
+                    destination: Amount {
+                        amount: row.amount_amount.parse().unwrap(),
+                        asset: Asset {
+                            name: row.amount_currency,
+                            contract_address: None,
+                        },
+                    },
+                    comission: None,
+                    timestamp: row.created_at.parse().unwrap(),
+                },
+                _ => {
+                    todo!()
+                }
+            })
+            .collect::<Vec<Trade>>();
+
+    let mut trades = vec![];
+    trades.append(&mut transactions_except_trades);
+
+    let transactions_trades =
+        query!("SELECT * FROM coinbase_transactions WHERE type = 'trade' ORDER BY created_at")
+            .fetch_all(db)
+            .await?;
+    let mut source = None;
+    let mut destination = None;
+
+    for trade in transactions_trades {
+        if trade.native_amount_currency != "EUR" {
+            unimplemented!(
+                "Coinbase trade with currency {}",
+                trade.native_amount_currency
+            );
+        }
+
+        if trade.amount_amount.contains('-') {
+            source = Some((
+                Amount {
+                    amount: trade.amount_amount.parse::<f64>().unwrap() * -1.0,
+                    asset: Asset {
+                        name: trade.amount_currency,
+                        contract_address: None,
+                    },
+                },
+                trade.native_amount_amount.parse::<f64>().unwrap() * -1.0,
+            ));
+        } else {
+            destination = Some((
+                Amount {
+                    amount: trade.amount_amount.parse().unwrap(),
+                    asset: Asset {
+                        name: trade.amount_currency,
+                        contract_address: None,
+                    },
+                },
+                trade.native_amount_amount.parse::<f64>().unwrap(),
+            ));
+        }
+
+        if source.is_some() && destination.is_some() {
+            let comission = Some(Amount {
+                amount: source.clone().unwrap().1 - destination.clone().unwrap().1,
+                asset: Asset {
+                    name: trade.native_amount_currency,
+                    contract_address: None,
+                },
+            });
+
+            trades.push(Trade {
                 application: Application("Coinbase".to_string()),
-                tx_id: row.id,
-                source: Amount {
-                    amount: row.native_amount_amount.parse().unwrap(),
-                    asset: Asset {
-                        name: row.native_amount_currency,
-                        contract_address: None,
-                    },
-                },
-                destination: Amount {
-                    amount: row.amount_amount.parse().unwrap(),
-                    asset: Asset {
-                        name: row.amount_currency,
-                        contract_address: None,
-                    },
-                },
-                comission: None,
-                timestamp: row.created_at.parse().unwrap(),
-            },
-            _ => {
-                todo!()
-            }
-        })
-        .collect::<Vec<Trade>>();
+                tx_id: trade.id,
+                source: source.map(|(amount, _native)| amount),
+                destination: destination.expect("").0,
+                comission,
+                timestamp: trade.created_at.parse().unwrap(),
+            });
+
+            source = None;
+            destination = None;
+        }
+    }
 
     Ok(trades)
 }
