@@ -8,6 +8,7 @@ use sqlx::migrate;
 
 pub mod command_line_interface;
 pub mod data;
+pub mod export;
 pub mod input;
 
 #[macro_use]
@@ -31,10 +32,8 @@ async fn main() -> Result<(), InputError> {
 
     let result = match cli.command {
         Command::Fetch { exchange } => input::gather_data(&db, exchange).await,
-        Command::Display {} => input::list_all_trades(&db).await,
-        _ => {
-            todo!()
-        }
+        Command::Display => input::list_all_trades(&db).await,
+        Command::Export => export::export_data(&db).await,
     };
 
     result.expect("Failed to gather data");

@@ -16,13 +16,9 @@ pub enum Command {
         exchange: Option<Exchange>,
     },
     /// Display data from exchanges, defaulting to all
-    Display {},
+    Display,
     /// Export data from exchanges, defaulting to all
-    Export {
-        #[arg(short, long)]
-        /// specify the exchange to export data from
-        exchange: Option<Exchange>,
-    },
+    Export,
 }
 
 #[derive(Subcommand)]

@@ -5,7 +5,7 @@ use hmac::Hmac;
 use sha2::Sha256;
 use sqlx::{Pool, Sqlite};
 
-use crate::command_line_interface::Exchange;
+use crate::{command_line_interface::Exchange, data::Trade};
 
 pub mod coinbase;
 pub mod mexc;
@@ -16,6 +16,8 @@ type HmacSha256 = Hmac<Sha256>;
 pub enum InputError {
     RequestError(Arc<reqwest::Error>),
     SqlError(Arc<sqlx::Error>),
+    CsvError(Arc<csv::Error>),
+    IoError(Arc<std::io::Error>),
     StatusError(u16),
 }
 impl From<reqwest::Error> for InputError {
@@ -26,6 +28,16 @@ impl From<reqwest::Error> for InputError {
 impl From<sqlx::Error> for InputError {
     fn from(error: sqlx::Error) -> Self {
         InputError::SqlError(Arc::new(error))
+    }
+}
+impl From<csv::Error> for InputError {
+    fn from(error: csv::Error) -> Self {
+        InputError::CsvError(Arc::new(error))
+    }
+}
+impl From<std::io::Error> for InputError {
+    fn from(error: std::io::Error) -> Self {
+        InputError::IoError(Arc::new(error))
     }
 }
 
@@ -47,11 +59,17 @@ pub async fn gather_data(db: &Pool<Sqlite>, exchange: Option<Exchange>) -> Resul
     Ok(())
 }
 
-pub async fn list_all_trades(db: &Pool<Sqlite>) -> Result<(), InputError> {
+pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError> {
     let mut trades = vec![];
 
-    // trades.append(&mut mexc::get_all_trades(db).await?);
+    trades.append(&mut mexc::get_all_trades(db).await?);
     trades.append(&mut coinbase::get_all_trades(db).await?);
+
+    Ok(trades)
+}
+
+pub async fn list_all_trades(db: &Pool<Sqlite>) -> Result<(), InputError> {
+    let trades = get_all_trades(db).await?;
     let json = serde_json::to_string(&trades).unwrap();
 
     println!("{}", json);
