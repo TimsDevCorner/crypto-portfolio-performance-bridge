@@ -83,6 +83,8 @@ pub struct Trade {
     pub destination: Amount,
     /// The comission paid for the trade
     pub comission: Option<Amount>,
+    /// The value of the whole trade in the fiat currency, comission included
+    pub usd_amount: f64,
 
     /// The timestamp the trasaction took place
     pub timestamp: DateTime<Utc>,

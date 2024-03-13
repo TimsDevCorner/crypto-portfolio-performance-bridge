@@ -86,6 +86,7 @@ async fn get_symbols() -> Result<Vec<String>, InputError> {
         "XAIUSDT".to_string(),
         "ZEPHUSDT".to_string(),
         "QNTUSDT".to_string(),
+        "MNGLUSDT".to_string(),
     ];
 
     Ok(symbols)
@@ -136,8 +137,9 @@ async fn retrieve_and_save_trades_for_symbol(
                     order_list_id, price, qty,
                     quote_qty, commission, commission_asset,
                     time, is_buyer, is_maker,
-                    is_best_match, is_self_trade, client_order_id) 
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
+                    is_best_match, is_self_trade, client_order_id,
+                    created_at) 
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)",
             trade.symbol,
             trade.id,
             trade.order_id,
@@ -200,11 +202,11 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError>
             };
 
             let (source, destination) = if row.is_buyer != 1 {
-                // bought crypto
-                (usdt, crypto)
-            } else {
                 // sold crypto
                 (crypto, usdt)
+            } else {
+                // bought crypto
+                (usdt, crypto)
             };
 
             Trade {
@@ -213,6 +215,7 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError>
                 source: Some(source),
                 destination,
                 comission,
+                usd_amount: row.quote_qty.parse().unwrap(),
                 timestamp: Utc.timestamp_millis_opt(row.time).unwrap(),
             }
         })
