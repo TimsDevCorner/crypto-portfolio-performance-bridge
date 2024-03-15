@@ -100,8 +100,6 @@ fn map_trade(trade: Trade) -> Vec<ExportTrade> {
             }]
         } else {
             let comission = trade.comission.map(|com| com.amount).unwrap_or(0.0);
-            let comission_sell = (comission * 100.0 / 2.0).trunc() / 100.0;
-            let comission_buy = comission - comission_sell;
 
             vec![
                 ExportTrade {
@@ -113,8 +111,8 @@ fn map_trade(trade: Trade) -> Vec<ExportTrade> {
                     ticker: source.asset.name,
                     r#type: ExportTradeType::Sell,
                     crypto_amount: source.amount,
-                    fiat_amount: trade.usd_amount - comission_sell,
-                    comission_amount: comission_sell,
+                    fiat_amount: trade.usd_amount - comission,
+                    comission_amount: comission,
                     note: "".to_string(),
                     date: trade.timestamp.date_naive(),
                     time: trade.timestamp.time(),
@@ -128,8 +126,8 @@ fn map_trade(trade: Trade) -> Vec<ExportTrade> {
                     ticker: trade.destination.asset.name,
                     r#type: ExportTradeType::Buy,
                     crypto_amount: trade.destination.amount,
-                    fiat_amount: trade.usd_amount - comission_buy,
-                    comission_amount: comission_buy,
+                    fiat_amount: trade.usd_amount - comission,
+                    comission_amount: 0.0,
                     note: "".to_string(),
                     date: trade.timestamp.date_naive(),
                     time: trade.timestamp.time(),

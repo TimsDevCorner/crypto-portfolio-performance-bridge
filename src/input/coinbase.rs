@@ -233,8 +233,7 @@ pub async fn gather_data(db: &Pool<Sqlite>) -> Result<(), InputError> {
 
 fn convert_to_usd(currency: &str, amount: &f64) -> f64 {
     match currency {
-        // even though the data says EUR, it's actually USD
-        "EUR" => amount.clone(), // * 1.2
+        "EUR" => amount / 0.92,
         _ => unimplemented!("Currency {} is not implemented", currency),
     }
 }
