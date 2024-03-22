@@ -1,7 +1,8 @@
 use hmac::Mac;
 use reqwest::Response;
 
-use super::{HmacSha256, InputError};
+use super::InputError;
+use crate::input::HmacSha256;
 
 pub async fn request(url: &str) -> Result<Response, InputError> {
     let client = reqwest::Client::new();

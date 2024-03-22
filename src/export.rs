@@ -1,4 +1,4 @@
-se chrono::{NaiveDate, NaiveTime};
+use chrono::{NaiveDate, NaiveTime};
 use csv::Writer;
 use sqlx::{Pool, Sqlite};
 
@@ -55,7 +55,7 @@ fn map_trade(trade: Trade) -> Vec<ExportTransaction> {
         ticker = asset.clone();
 
         crypto_amount = trade.destination.amount;
-        comission_amount = trade.comission.map(|com| com.amount).unwrap_or(0.0);
+        comission_amount = trade.comission.map(|com| com.usd_amount).unwrap_or(0.0);
         fiat_amount = trade.source.amount - comission_amount;
 
         vec![ExportTransaction {
@@ -79,7 +79,7 @@ fn map_trade(trade: Trade) -> Vec<ExportTransaction> {
         ticker = asset.clone();
 
         crypto_amount = trade.source.amount;
-        comission_amount = trade.comission.map(|com| com.amount).unwrap_or(0.0);
+        comission_amount = trade.comission.map(|com| com.usd_amount).unwrap_or(0.0);
         fiat_amount = trade.destination.amount - comission_amount;
 
         vec![ExportTransaction {
