@@ -5,7 +5,7 @@ use hmac::Hmac;
 use sha2::Sha256;
 use sqlx::{Pool, Sqlite};
 
-use crate::{command_line_interface::Exchange, data::Trade};
+use crate::{command_line_interface::Exchange, data::Transaction};
 
 pub mod coinbase;
 pub mod mexc;
@@ -59,7 +59,7 @@ pub async fn gather_data(db: &Pool<Sqlite>, exchange: Option<Exchange>) -> Resul
     Ok(())
 }
 
-pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError> {
+pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Transaction>, InputError> {
     let mut trades = vec![];
 
     trades.append(&mut mexc::get_all_trades(db).await?);

@@ -2,7 +2,7 @@ use reqwest::Response;
 use serde::de::DeserializeOwned;
 use sqlx::{query, Pool, Sqlite};
 
-use crate::data::{Amount, Application, Asset, Trade};
+use crate::data::{Airdrop, Amount, Application, Asset, Trade, Transaction};
 
 use super::{HmacSha256, InputError};
 use hmac::Mac;
@@ -238,7 +238,7 @@ fn convert_to_usd(currency: &str, amount: &f64) -> f64 {
     }
 }
 
-pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError> {
+pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Transaction>, InputError> {
     let mut transactions_except_trades =
         query!("SELECT * FROM coinbase_transactions WHERE type != 'trade'")
             .fetch_all(db)
@@ -262,16 +262,16 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError>
                 );
 
                 match row.r#type.as_ref() {
-                    "buy" => Trade {
+                    "buy" => Transaction::Trade(Trade {
                         application: Application("Coinbase".to_string()),
                         tx_id: row.id,
-                        source: Some(Amount {
+                        source: Amount {
                             amount: usd_amount,
                             asset: Asset {
                                 name: "USD".to_string(),
                                 contract_address: None,
                             },
-                        }),
+                        },
                         usd_amount,
                         destination: Amount {
                             amount: row.amount_amount.parse().unwrap(),
@@ -282,17 +282,17 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError>
                         },
                         comission: None,
                         timestamp: row.created_at.parse().unwrap(),
-                    },
-                    "sell" => Trade {
+                    }),
+                    "sell" => Transaction::Trade(Trade {
                         application: Application("Coinbase".to_string()),
                         tx_id: row.id,
-                        source: Some(Amount {
+                        source: Amount {
                             amount: row.amount_amount.parse::<f64>().unwrap() * -1.0,
                             asset: Asset {
                                 name: row.amount_currency,
                                 contract_address: None,
                             },
-                        }),
+                        },
                         destination: Amount {
                             amount: usd_amount * -1.0,
                             asset: Asset {
@@ -303,28 +303,29 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError>
                         usd_amount: usd_amount * -1.0,
                         comission: None,
                         timestamp: row.created_at.parse().unwrap(),
-                    },
-                    "earn_payout" => Trade {
-                        application: Application("Coinbase".to_string()),
+                    }),
+                    "earn_payout" => Transaction::Airdrop(Airdrop {
                         tx_id: row.id,
-                        source: None,
-                        usd_amount,
-                        destination: Amount {
+                        amount: Amount {
                             amount: row.amount_amount.parse().unwrap(),
                             asset: Asset {
                                 name: row.amount_currency,
                                 contract_address: None,
                             },
                         },
-                        comission: None,
+                        usd_amount,
                         timestamp: row.created_at.parse().unwrap(),
-                    },
+                        note: row
+                            .description
+                            .and_then(|d| if d.is_empty() { None } else { Some(d) })
+                            .unwrap_or("Coinbase 'earn_payout'".to_string()),
+                    }),
                     _ => {
                         unimplemented!()
                     }
                 }
             })
-            .collect::<Vec<Trade>>();
+            .collect::<Vec<_>>();
 
     let mut trades = vec![];
     trades.append(&mut transactions_except_trades);
@@ -376,10 +377,10 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError>
                 },
             });
 
-            trades.push(Trade {
+            trades.push(Transaction::Trade(Trade {
                 application: Application("Coinbase".to_string()),
                 tx_id: trade.id,
-                source: source.map(|(amount, _native)| amount),
+                source: source.expect("").0,
                 destination: destination.expect("").0,
                 usd_amount: convert_to_usd(
                     &trade.native_amount_currency,
@@ -387,7 +388,7 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError>
                 ) * -1.0,
                 comission,
                 timestamp: trade.created_at.parse().unwrap(),
-            });
+            }));
 
             source = None;
             destination = None;

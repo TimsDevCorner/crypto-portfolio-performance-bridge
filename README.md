@@ -22,3 +22,12 @@ This project is a command line tool to generate CSV of crypto trades into portfo
 - Withdraw crypto from a wallet
 - bridge between networks
 
+
+
+## "Probleme" mit Portfolio Performance
+
+- "Umbuchungen" haben keine Transaktionsgebühren
+- Dexscrenner für Kurse, eventuell einen anderen anbieter?
+- "Airdrops" nicht direkt möglich, weil 0,00$ als Kaufpreis nicht möglich ist
+- Crypto als "Währung"?
+- Direkte Anbindung von Mexc, Bridges, etc. in PP? Oder lieber ein separates Tool zum Importieren?

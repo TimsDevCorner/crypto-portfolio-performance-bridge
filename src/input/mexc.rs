@@ -4,7 +4,7 @@ use hmac::Mac;
 use reqwest::Response;
 use sqlx::{query, Pool, Sqlite};
 
-use crate::data::{Amount, Application, Asset, Trade};
+use crate::data::{Amount, Application, Asset, Trade, Transaction};
 
 use super::{HmacSha256, InputError};
 
@@ -163,7 +163,7 @@ async fn retrieve_and_save_trades_for_symbol(
     Ok(())
 }
 
-pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError> {
+pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Transaction>, InputError> {
     let trades = query!("SELECT * FROM mexc_my_trades")
         .fetch_all(db)
         .await?
@@ -209,15 +209,15 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Trade>, InputError>
                 (usdt, crypto)
             };
 
-            Trade {
+            Transaction::Trade(Trade {
                 application: Application("MEXC".to_string()),
                 tx_id: row.id,
-                source: Some(source),
+                source,
                 destination,
                 comission,
                 usd_amount: row.quote_qty.parse().unwrap(),
                 timestamp: Utc.timestamp_millis_opt(row.time).unwrap(),
-            }
+            })
         })
         .collect::<Vec<_>>();
 
