@@ -51,6 +51,12 @@ pub enum Transaction {
     Bridge(Bridge),
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct Comission {
+    pub amount: Amount,
+    pub usd_amount: f64,
+}
+
 /// A Trade is a transaction where one asset is exchanged for another
 #[derive(Debug, Clone, Serialize)]
 pub struct Trade {
@@ -64,7 +70,7 @@ pub struct Trade {
     /// The asset being bought
     pub destination: Amount,
     /// The comission paid for the trade
-    pub comission: Option<Amount>,
+    pub comission: Option<Comission>,
     /// The value of the whole trade in the fiat currency, comission included
     pub usd_amount: f64,
 

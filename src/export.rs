@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, NaiveTime};
+se chrono::{NaiveDate, NaiveTime};
 use csv::Writer;
 use sqlx::{Pool, Sqlite};
 
@@ -98,7 +98,7 @@ fn map_trade(trade: Trade) -> Vec<ExportTransaction> {
             time: trade.timestamp.time(),
         }]
     } else {
-        let comission = trade.comission.map(|com| com.amount).unwrap_or(0.0);
+        let comission = trade.comission.map(|com| com.usd_amount).unwrap_or(0.0);
 
         vec![
             ExportTransaction {

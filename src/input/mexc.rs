@@ -1,96 +1,16 @@
 use chrono::{TimeZone, Utc};
 use futures::future::join_all;
-use hmac::Mac;
-use reqwest::Response;
 use sqlx::{query, Pool, Sqlite};
 
-use crate::data::{Amount, Application, Asset, Trade, Transaction};
+use crate::data::{Amount, Application, Asset, Comission, Trade, Transaction};
 
-use super::{HmacSha256, InputError};
+use self::requests::{get_symbols, request_signed};
 
-async fn request(url: &str) -> Result<Response, InputError> {
-    let client = reqwest::Client::new();
+use super::InputError;
 
-    let resp = client
-        .get(format!("https://api.mexc.com/api/v3/{url}",))
-        .header("X-MEXC-APIKEY", dotenv!("MEXC_ACCESS_KEY"))
-        .header("Content-Type", "application/json");
-
-    Ok(resp.send().await?)
-}
-
-#[derive(Debug, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct TimeResult {
-    server_time: u64,
-}
-
-async fn request_signed(url: &str, parameters: &str) -> Result<Response, InputError> {
-    let client = reqwest::Client::new();
-
-    let now = request("time")
-        .await?
-        .json::<TimeResult>()
-        .await?
-        .server_time;
-
-    let parameters = if parameters.is_empty() {
-        format!("timestamp={now}")
-    } else {
-        format!("timestamp={now}&{parameters}")
-    };
-
-    let mut mac = HmacSha256::new_from_slice(dotenv!("MEXC_SECRET_KEY").as_bytes()).unwrap();
-    mac.update(parameters.as_bytes());
-    let signature = mac.finalize().into_bytes();
-
-    let resp = client
-        .get(format!(
-            "https://api.mexc.com/api/v3/{url}?signature={:#01x}&{parameters}",
-            signature
-        ))
-        .header("X-MEXC-APIKEY", dotenv!("MEXC_ACCESS_KEY"))
-        .header("Content-Type", "application/json")
-        .send()
-        .await?;
-
-    if resp.status() != 200 {
-        panic!(
-            "Status error {}, {}",
-            resp.status().as_u16(),
-            resp.text().await?
-        );
-    }
-
-    Ok(resp)
-}
-
-async fn get_symbols() -> Result<Vec<String>, InputError> {
-    // Using the API to gather symbols leads to a 403 error due to too many requests
-
-    let symbols = vec![
-        "ALPHUSDT".to_string(),
-        "APTUSDT".to_string(),
-        "AZEROUSDT".to_string(),
-        "BNBUSDT".to_string(),
-        "CAKEUSDT".to_string(),
-        "COTIUSDT".to_string(),
-        "DYMUSDT".to_string(),
-        "ETHUSDT".to_string(),
-        "KASUSDT".to_string(),
-        "MINAUSDT".to_string(),
-        "ONDOUSDT".to_string(),
-        "RVFUSDT".to_string(),
-        "TRIASUSDT".to_string(),
-        "WELSHUSDT".to_string(),
-        "XAIUSDT".to_string(),
-        "ZEPHUSDT".to_string(),
-        "QNTUSDT".to_string(),
-        "MNGLUSDT".to_string(),
-    ];
-
-    Ok(symbols)
-}
+pub mod requests;
+pub mod trades;
+pub mod transactions;
 
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -192,12 +112,15 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Transaction>, Input
             let comission = if row.commission == "0" {
                 None
             } else {
-                Some(Amount {
-                    amount: row.commission.parse().unwrap(),
-                    asset: Asset {
-                        name: row.commission_asset,
-                        contract_address: None,
+                Some(Comission {
+                    amount: Amount {
+                        amount: row.commission.parse().unwrap(),
+                        asset: Asset {
+                            name: row.commission_asset,
+                            contract_address: None,
+                        },
                     },
+                    usd_amount: row.commission.parse().unwrap(),
                 })
             };
 

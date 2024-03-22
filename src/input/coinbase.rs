@@ -2,7 +2,7 @@ use reqwest::Response;
 use serde::de::DeserializeOwned;
 use sqlx::{query, Pool, Sqlite};
 
-use crate::data::{Airdrop, Amount, Application, Asset, Trade, Transaction};
+use crate::data::{Airdrop, Amount, Application, Asset, Comission, Trade, Transaction};
 
 use super::{HmacSha256, InputError};
 use hmac::Mac;
@@ -369,12 +369,15 @@ pub async fn get_all_trades(db: &Pool<Sqlite>) -> Result<Vec<Transaction>, Input
         }
 
         if source.is_some() && destination.is_some() {
-            let comission = Some(Amount {
-                amount: source.clone().unwrap().1 - destination.clone().unwrap().1,
-                asset: Asset {
-                    name: "USD".to_string(),
-                    contract_address: None,
+            let comission = Some(Comission {
+                amount: Amount {
+                    amount: source.clone().unwrap().1 - destination.clone().unwrap().1,
+                    asset: Asset {
+                        name: "USD".to_string(),
+                        contract_address: None,
+                    },
                 },
+                usd_amount: source.clone().unwrap().1 - destination.clone().unwrap().1,
             });
 
             trades.push(Transaction::Trade(Trade {
